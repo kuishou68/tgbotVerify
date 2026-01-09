@@ -1,9 +1,9 @@
 # SheerID Auto-Verification Telegram Bot
 
-![Stars](https://img.shields.io/github/stars/PastKing/tgbot-verify?style=social)
-![Forks](https://img.shields.io/github/forks/PastKing/tgbot-verify?style=social)
-![Issues](https://img.shields.io/github/issues/PastKing/tgbot-verify)
-![License](https://img.shields.io/github/license/PastKing/tgbot-verify)
+![Stars](https://img.shields.io/github/stars/kuishou68/tgbotVerify?style=social)
+![Forks](https://img.shields.io/github/forks/kuishou68/tgbotVerify?style=social)
+![Issues](https://img.shields.io/github/issues/kuishou68/tgbotVerify)
+![License](https://img.shields.io/github/license/kuishou68/tgbotVerify)
 
 > 🤖 Automated SheerID Student/Teacher Verification Telegram Bot
 > 
@@ -81,7 +81,7 @@ A Python-based Telegram bot that automates SheerID student/teacher identity veri
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/PastKing/tgbot-verify.git
+git clone https://github.com/kuishou68/tgbotVerify.git
 cd tgbot-verify
 ```
 
@@ -294,7 +294,7 @@ Since SheerID platform's `programId` may be updated periodically, the following 
 ## 🔗 Links
 
 - 📺 **Telegram Channel**: https://t.me/pk_oa
-- 🐛 **Issue Tracking**: [GitHub Issues](https://github.com/PastKing/tgbot-verify/issues)
+- 🐛 **Issue Tracking**: [GitHub Issues](https://github.com/kuishou68/tgbotVerify/issues)
 - 📖 **Deployment Guide**: [DEPLOY.md](DEPLOY.md)
 
 ---
@@ -344,7 +344,7 @@ in the Software without restriction...
 
 ## 📊 Statistics
 
-[![Star History Chart](https://api.star-history.com/svg?repos=PastKing/tgbot-verify&type=Date)](https://star-history.com/#PastKing/tgbot-verify&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=kuishou68/tgbotVerify&type=Date)](https://star-history.com/#kuishou68/tgbotVerify&Date)
 
 ---
 

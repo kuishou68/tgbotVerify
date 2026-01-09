@@ -1,9 +1,9 @@
 # SheerID 自动认证 Telegram 机器人
 
-![Stars](https://img.shields.io/github/stars/PastKing/tgbot-verify?style=social)
-![Forks](https://img.shields.io/github/forks/PastKing/tgbot-verify?style=social)
-![Issues](https://img.shields.io/github/issues/PastKing/tgbot-verify)
-![License](https://img.shields.io/github/license/PastKing/tgbot-verify)
+![Stars](https://img.shields.io/github/stars/kuishou68/tgbotVerify?style=social)
+![Forks](https://img.shields.io/github/forks/kuishou68/tgbotVerify?style=social)
+![Issues](https://img.shields.io/github/issues/kuishou68/tgbotVerify)
+![License](https://img.shields.io/github/license/kuishou68/tgbotVerify)
 
 > 🤖 自动完成 SheerID 学生/教师/军人认证的 Telegram 机器人
 > 
@@ -77,7 +77,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/PastKing/tgbot-verify.git
+git clone https://github.com/kuishou68/tgbotVerify.git
 cd tgbot-verify
 ```
 
@@ -291,7 +291,7 @@ REGISTER_REWARD = 1    # 注册奖励积分
 ## 🔗 相关链接
 
 - 📺 **Telegram 频道**：https://t.me/pk_oa
-- 🐛 **问题反馈**：[GitHub Issues](https://github.com/PastKing/tgbot-verify/issues)
+- 🐛 **问题反馈**：[GitHub Issues](https://github.com/kuishou68/tgbotVerify/issues)
 - 📖 **部署文档**：[DEPLOY.md](DEPLOY.md)
 
 ---
@@ -341,7 +341,7 @@ in the Software without restriction...
 
 ## 📊 项目统计
 
-[![Star History Chart](https://api.star-history.com/svg?repos=PastKing/tgbot-verify&type=Date)](https://star-history.com/#PastKing/tgbot-verify&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=kuishou68/tgbotVerify&type=Date)](https://star-history.com/#kuishou68/tgbotVerify&Date)
 
 ---
 

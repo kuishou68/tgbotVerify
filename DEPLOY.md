@@ -44,7 +44,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/PastKing/tgbot-verify.git
+git clone https://github.com/kuishou68/tgbotVerify.git
 cd tgbot-verify
 
 # 2. 配置环境变量
@@ -547,7 +547,7 @@ sudo supervisorctl start tgbot-verify
 ## 📞 技术支持
 
 - 📺 Telegram 频道：https://t.me/pk_oa
-- 🐛 问题反馈：[GitHub Issues](https://github.com/PastKing/tgbot-verify/issues)
+- 🐛 问题反馈：[GitHub Issues](https://github.com/kuishou68/tgbotVerify/issues)
 
 ---
 

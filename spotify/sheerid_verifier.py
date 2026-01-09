@@ -1,4 +1,4 @@
-"""SheerID 学生验证主程序"""
+"""SheerID Spotify 学生验证主程序"""
 import re
 import random
 import logging
@@ -8,6 +8,12 @@ from typing import Dict, Optional, Tuple
 from . import config
 from .name_generator import NameGenerator, generate_email, generate_birth_date
 from .img_generator import generate_psu_email, generate_image
+
+# 导入临时邮箱服务
+try:
+    from utils.temp_email import TempEmailService
+except ImportError:
+    TempEmailService = None
 
 # 配置日志
 logging.basicConfig(
@@ -19,12 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 class SheerIDVerifier:
-    """SheerID 学生身份验证器"""
+    """SheerID Spotify 学生身份验证器"""
 
-    def __init__(self, verification_id: str):
+    def __init__(self, verification_id: str, use_temp_email: bool = True):
+        """
+        初始化验证器
+
+        Args:
+            verification_id: SheerID 验证 ID
+            use_temp_email: 是否使用临时邮箱（用于自动处理邮箱验证）
+        """
         self.verification_id = verification_id
         self.device_fingerprint = self._generate_device_fingerprint()
         self.http_client = httpx.Client(timeout=30.0)
+        self.use_temp_email = use_temp_email and TempEmailService is not None
+        self.temp_email_service: Optional[TempEmailService] = None
 
     def __del__(self):
         if hasattr(self, "http_client"):
@@ -88,7 +103,16 @@ class SheerIDVerifier:
         birth_date: str = None,
         school_id: str = None,
     ) -> Dict:
-        """执行验证流程，移除状态轮询以减少耗时"""
+        """
+        执行验证流程
+
+        流程:
+        1. 生成学生证 PNG
+        2. 提交学生信息
+        3. 跳过 SSO（如需要）
+        4. 上传文档
+        5. (如果需要) 自动处理邮箱验证
+        """
         try:
             current_step = "initial"
 
@@ -100,8 +124,19 @@ class SheerIDVerifier:
             school_id = school_id or config.DEFAULT_SCHOOL_ID
             school = config.SCHOOLS[school_id]
 
+            # 使用临时邮箱或生成 PSU 邮箱
             if not email:
-                email = generate_psu_email(first_name, last_name)
+                if self.use_temp_email:
+                    logger.info("正在创建临时邮箱...")
+                    self.temp_email_service = TempEmailService()
+                    email = self.temp_email_service.create_account(first_name, last_name)
+                    if not email:
+                        logger.warning("临时邮箱创建失败，使用 PSU 邮箱")
+                        email = generate_psu_email(first_name, last_name)
+                        self.temp_email_service = None
+                else:
+                    email = generate_psu_email(first_name, last_name)
+
             if not birth_date:
                 birth_date = generate_birth_date()
 
@@ -192,16 +227,86 @@ class SheerIDVerifier:
                 f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/completeDocUpload",
             )
             logger.info(f"✅ 文档提交完成: {step6_data.get('currentStep')}")
-            final_status = step6_data
+            final_step = step6_data.get("currentStep")
 
-            # 不做状态轮询，直接返回等待审核
+            # 检查是否需要邮箱验证
+            if final_step == "emailLoop":
+                logger.info("SheerID 要求邮箱验证")
+
+                # 如果有临时邮箱服务，尝试自动完成邮箱验证
+                if self.temp_email_service:
+                    logger.info("正在等待验证邮件...")
+                    verification_url = self.temp_email_service.wait_for_sheerid_email(
+                        max_wait=90,  # 最多等待 90 秒
+                        poll_interval=5
+                    )
+
+                    if verification_url:
+                        logger.info("收到验证邮件，正在完成验证...")
+                        success, msg = self.temp_email_service.click_verification_link(verification_url)
+
+                        if success:
+                            logger.info("邮箱验证完成，检查最终状态...")
+                            # 重新检查验证状态
+                            status_url = f"{config.SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}"
+                            final_data, _ = self._sheerid_request("GET", status_url)
+                            final_step = final_data.get("currentStep", "unknown")
+
+                            if final_step == "success":
+                                return {
+                                    "success": True,
+                                    "pending": False,
+                                    "message": "认证成功（已自动完成邮箱验证）",
+                                    "verification_id": self.verification_id,
+                                    "redirect_url": final_data.get("redirectUrl"),
+                                    "status": final_data,
+                                }
+                            elif final_step == "pending":
+                                return {
+                                    "success": True,
+                                    "pending": True,
+                                    "message": "邮箱已验证，等待审核",
+                                    "verification_id": self.verification_id,
+                                    "redirect_url": final_data.get("redirectUrl"),
+                                    "current_step": final_step,
+                                    "status": final_data,
+                                }
+                            else:
+                                logger.warning(f"邮箱验证后状态: {final_step}")
+                        else:
+                            logger.warning(f"点击验证链接失败: {msg}")
+                    else:
+                        logger.warning("未收到验证邮件")
+
+                # 临时邮箱不可用或验证失败
+                logger.warning("邮箱验证无法自动完成")
+                return {
+                    "success": False,
+                    "message": "SheerID 要求验证邮箱，自动验证失败。请使用真实可接收邮件的邮箱重新获取验证链接。",
+                    "verification_id": self.verification_id,
+                    "current_step": final_step,
+                    "status": step6_data,
+                }
+
+            # 检查是否直接成功
+            if final_step == "success":
+                return {
+                    "success": True,
+                    "pending": False,
+                    "message": "认证成功",
+                    "verification_id": self.verification_id,
+                    "redirect_url": step6_data.get("redirectUrl"),
+                    "status": step6_data,
+                }
+
+            # 返回等待审核状态
             return {
                 "success": True,
                 "pending": True,
                 "message": "文档已提交，等待审核",
                 "verification_id": self.verification_id,
-                "redirect_url": final_status.get("redirectUrl"),
-                "status": final_status,
+                "redirect_url": step6_data.get("redirectUrl"),
+                "status": step6_data,
             }
 
         except Exception as e:

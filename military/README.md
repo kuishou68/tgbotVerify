@@ -172,13 +172,30 @@ ChatGPT 军人认证流程与普通学生/教师认证不同，需要先执行�
 
 ---
 
-## 📝 待实现功能
+## 📝 实现状态
 
-- [ ] 实现 `collectMilitaryStatus` 接口调用
-- [ ] 实现 `collectInactiveMilitaryPersonalInfo` 接口调用
-- [ ] 添加军队组织选择逻辑
-- [ ] 生成符合要求的个人信息（姓名、出生日期、邮箱等）
-- [ ] 生成退役日期（需要合理的时间范围）
-- [ ] 处理元数据信息（从原始请求中提取或构造）
-- [ ] 集成到主机器人命令系统（如 `/verify6`）
+- [x] 实现 `collectMilitaryStatus` 接口调用
+- [x] 实现 `collectInactiveMilitaryPersonalInfo` 接口调用
+- [x] 添加军队组织选择逻辑（随机选择6个军种之一）
+- [x] 生成符合要求的个人信息（姓名、出生日期、邮箱等）
+- [x] 生成退役日期（过去1-5年内的随机日期）
+- [x] 处理元数据信息
+- [x] 集成到主机器人命令系统 `/verify6`
+
+## 📁 文件结构
+
+```
+military/
+├── __init__.py          # 模块初始化
+├── config.py            # 配置文件（军种、API地址等）
+├── sheerid_verifier.py  # 验证器实现
+└── README.md            # 本文档
+```
+
+## 🚀 使用方法
+
+在 Telegram 机器人中使用：
+```
+/verify6 <SheerID验证链接>
+```
 

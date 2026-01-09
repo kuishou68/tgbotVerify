@@ -3,6 +3,7 @@
 使用提供的MySQL服务器进行数据存储
 """
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 import pymysql
@@ -20,8 +21,6 @@ class MySQLDatabase:
 
     def __init__(self):
         """初始化数据库连接"""
-        import os
-        
         # 从环境变量读取配置（推荐）或使用默认值
         self.config = {
             'host': os.getenv('MYSQL_HOST', 'localhost'),
@@ -545,6 +544,16 @@ class MySQLDatabase:
             conn.close()
 
 
-# 创建全局实例的别名，保持与SQLite版本的兼容性
-Database = MySQLDatabase
+# 创建全局实例的别名，支持 SQLite 切换
+try:
+    from database_sqlite import SQLiteDatabase
+except Exception:  # pragma: no cover - SQLite 可选依赖
+    SQLiteDatabase = None
 
+db_backend = os.getenv("DB_BACKEND", "mysql").strip().lower()
+if db_backend == "sqlite":
+    if SQLiteDatabase is None:
+        raise RuntimeError("DB_BACKEND=sqlite 但未找到 database_sqlite.py")
+    Database = SQLiteDatabase
+else:
+    Database = MySQLDatabase

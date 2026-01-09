@@ -14,7 +14,7 @@ CHANNEL_URL = os.getenv("CHANNEL_URL", "https://t.me/pk_oa")
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "123456789"))
 
 # 积分配置
-VERIFY_COST = 1  # 验证消耗的积分
+VERIFY_COST = int(os.getenv("VERIFY_COST", "0"))  # 验证消耗的积分（本地测试设为0）
 CHECKIN_REWARD = 1  # 签到奖励积分
 INVITE_REWARD = 2  # 邀请奖励积分
 REGISTER_REWARD = 1  # 注册奖励积分

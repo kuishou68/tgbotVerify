@@ -1,5 +1,7 @@
 """Telegram 机器人主程序"""
 import logging
+import os
+import time
 from functools import partial
 
 from telegram.ext import Application, CommandHandler
@@ -20,6 +22,8 @@ from handlers.verify_commands import (
     verify2_command,
     verify3_command,
     verify4_command,
+    verify5_command,
+    verify6_command,
     getV4Code_command,
 )
 from handlers.admin_commands import (
@@ -31,6 +35,7 @@ from handlers.admin_commands import (
     listkeys_command,
     broadcast_command,
 )
+from handlers.email_commands import email_register_command
 
 # 配置日志
 logging.basicConfig(
@@ -47,6 +52,20 @@ async def error_handler(update: object, context) -> None:
 
 def main():
     """主函数"""
+    local_mode = os.getenv("LOCAL_MODE", "").strip().lower() in {"1", "true", "yes"}
+    if local_mode:
+        logger.warning("LOCAL_MODE 启用：跳过 Telegram 启动和数据库初始化。")
+        logger.info("本地模式运行中，按 Ctrl+C 退出。")
+        try:
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            logger.info("本地模式已退出。")
+        return
+
+    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+        raise RuntimeError("未设置 BOT_TOKEN。请配置 BOT_TOKEN 或设置 LOCAL_MODE=1。")
+
     # 初始化数据库
     db = Database()
 
@@ -72,6 +91,8 @@ def main():
     application.add_handler(CommandHandler("verify2", partial(verify2_command, db=db)))
     application.add_handler(CommandHandler("verify3", partial(verify3_command, db=db)))
     application.add_handler(CommandHandler("verify4", partial(verify4_command, db=db)))
+    application.add_handler(CommandHandler("verify5", partial(verify5_command, db=db)))
+    application.add_handler(CommandHandler("verify6", partial(verify6_command, db=db)))
     application.add_handler(CommandHandler("getV4Code", partial(getV4Code_command, db=db)))
 
     # 注册管理员命令
@@ -82,6 +103,9 @@ def main():
     application.add_handler(CommandHandler("genkey", partial(genkey_command, db=db)))
     application.add_handler(CommandHandler("listkeys", partial(listkeys_command, db=db)))
     application.add_handler(CommandHandler("broadcast", partial(broadcast_command, db=db)))
+
+    # 注册邮箱注册命令
+    application.add_handler(CommandHandler("email_register", email_register_command))
 
     # 注册错误处理器
     application.add_error_handler(error_handler)

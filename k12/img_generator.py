@@ -4,8 +4,6 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 
-from xhtml2pdf import pisa
-
 
 def _render_template(first_name: str, last_name: str) -> str:
     """读取模板，替换姓名/工号/日期，并展开 CSS 变量。"""
@@ -33,29 +31,35 @@ def _render_template(first_name: str, last_name: str) -> str:
     return html
 
 
-def generate_teacher_pdf(first_name: str, last_name: str) -> bytes:
-    """生成教师证明 PDF 文档字节。"""
-    html = _render_template(first_name, last_name)
-
-    output = BytesIO()
-    pisa_status = pisa.CreatePDF(html, dest=output, encoding="utf-8")
-    if pisa_status.err:
-        raise Exception("PDF 生成失败")
-
-    pdf_data = output.getvalue()
-    output.close()
-    return pdf_data
-
-
-def generate_teacher_png(first_name: str, last_name: str) -> bytes:
-    """使用 Playwright 截图生成 PNG（需要 playwright + chromium 已安装）。"""
+def _get_playwright() -> "object":
     try:
         from playwright.sync_api import sync_playwright
     except ImportError as exc:
         raise RuntimeError(
             "需要安装 playwright，请执行 `pip install playwright` 然后 `playwright install chromium`"
         ) from exc
+    return sync_playwright
 
+
+def generate_teacher_pdf(first_name: str, last_name: str) -> bytes:
+    """使用 Playwright 渲染 HTML 并生成 PDF 字节。"""
+    html = _render_template(first_name, last_name)
+
+    sync_playwright = _get_playwright()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(viewport={"width": 1200, "height": 1000})
+        page.set_content(html, wait_until="load")
+        page.wait_for_timeout(500)  # 让样式稳定
+        pdf_bytes = page.pdf(format="A4", print_background=True)
+        browser.close()
+
+    return pdf_bytes
+
+
+def generate_teacher_png(first_name: str, last_name: str) -> bytes:
+    """使用 Playwright 截图生成 PNG（需要 playwright + chromium 已安装）。"""
+    sync_playwright = _get_playwright()
     html = _render_template(first_name, last_name)
 
     with sync_playwright() as p:

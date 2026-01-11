@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class SheerIDVerifier:
     """SheerID Spotify 学生身份验证器"""
 
-    def __init__(self, verification_id: str, use_temp_email: bool = True):
+    def __init__(self, verification_id: str, use_temp_email: bool = False):
         """
         初始化验证器
 
@@ -131,9 +131,8 @@ class SheerIDVerifier:
                     self.temp_email_service = TempEmailService()
                     email = self.temp_email_service.create_account(first_name, last_name)
                     if not email:
-                        logger.warning("临时邮箱创建失败，使用 PSU 邮箱")
-                        email = generate_psu_email(first_name, last_name)
                         self.temp_email_service = None
+                        raise Exception("临时邮箱创建失败，请使用 /verify3 <链接> <真实邮箱> 重试")
                 else:
                     email = generate_psu_email(first_name, last_name)
 
@@ -185,7 +184,10 @@ class SheerIDVerifier:
             if step2_status != 200:
                 raise Exception(f"步骤 2 失败 (状态码 {step2_status}): {step2_data}")
             if step2_data.get("currentStep") == "error":
-                error_msg = ", ".join(step2_data.get("errorIds", ["Unknown error"]))
+                error_ids = step2_data.get("errorIds", ["Unknown error"])
+                if "fraudRulesReject" in error_ids:
+                    raise Exception("步骤 2 错误: fraudRulesReject（建议使用真实可接收邮箱与真实学校信息）")
+                error_msg = ", ".join(error_ids)
                 raise Exception(f"步骤 2 错误: {error_msg}")
 
             logger.info(f"✅ 步骤 2 完成: {step2_data.get('currentStep')}")

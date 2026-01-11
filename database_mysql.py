@@ -550,7 +550,7 @@ try:
 except Exception:  # pragma: no cover - SQLite 可选依赖
     SQLiteDatabase = None
 
-db_backend = os.getenv("DB_BACKEND", "mysql").strip().lower()
+db_backend = os.getenv("DB_BACKEND", "sqlite").strip().lower()
 if db_backend == "sqlite":
     if SQLiteDatabase is None:
         raise RuntimeError("DB_BACKEND=sqlite 但未找到 database_sqlite.py")

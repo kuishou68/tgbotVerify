@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class TempEmailService:
     """临时邮箱服务，用于接收 SheerID 验证邮件"""
 
-    BASE_URL = "https://api.mail.tm"
+    BASE_URLS = ("https://api.mail.tm", "https://api.mail.gw")
 
     def __init__(self):
         self.http_client = httpx.Client(timeout=30.0)
@@ -21,6 +21,7 @@ class TempEmailService:
         self.password: Optional[str] = None
         self.token: Optional[str] = None
         self.account_id: Optional[str] = None
+        self.base_url: Optional[str] = None
 
     def __del__(self):
         if hasattr(self, "http_client"):
@@ -39,14 +40,17 @@ class TempEmailService:
     def get_available_domain(self) -> Optional[str]:
         """获取可用的邮箱域名"""
         try:
-            response = self.http_client.get(f"{self.BASE_URL}/domains")
+            if not self.base_url:
+                raise RuntimeError("base_url 未设置")
+            response = self.http_client.get(f"{self.base_url}/domains")
             if response.status_code == 200:
                 data = response.json()
                 domains = data.get("hydra:member", [])
                 if domains:
-                    # 返回第一个可用域名
-                    return domains[0].get("domain")
-            logger.error(f"获取域名失败: {response.status_code}")
+                    # 随机选一个可用域名，降低单域名风控概率
+                    choice = random.choice(domains)
+                    return choice.get("domain")
+            logger.error(f"获取域名失败: {response.status_code} - {response.text}")
             return None
         except Exception as e:
             logger.error(f"获取域名异常: {e}")
@@ -63,69 +67,82 @@ class TempEmailService:
         Returns:
             str: 创建的邮箱地址，失败返回 None
         """
-        try:
-            # 获取可用域名
-            domain = self.get_available_domain()
-            if not domain:
-                logger.error("无法获取可用域名")
-                return None
+        for base_url in self.BASE_URLS:
+            self.base_url = base_url
 
-            # 生成邮箱地址和密码
-            username = self._generate_username(first_name, last_name)
-            self.email = f"{username}@{domain}"
-            self.password = self._generate_password()
+            for attempt in range(1, 4):
+                try:
+                    # 获取可用域名
+                    domain = self.get_available_domain()
+                    if not domain:
+                        logger.error("无法获取可用域名")
+                        continue
 
-            # 创建账号
-            response = self.http_client.post(
-                f"{self.BASE_URL}/accounts",
-                json={
-                    "address": self.email,
-                    "password": self.password
-                }
-            )
+                    # 生成邮箱地址和密码
+                    username = self._generate_username(first_name, last_name)
+                    self.email = f"{username}@{domain}"
+                    self.password = self._generate_password()
 
-            if response.status_code == 201:
-                data = response.json()
-                self.account_id = data.get("id")
-                logger.info(f"临时邮箱创建成功: {self.email}")
+                    # 创建账号
+                    response = self.http_client.post(
+                        f"{self.base_url}/accounts",
+                        json={
+                            "address": self.email,
+                            "password": self.password
+                        }
+                    )
 
-                # 登录获取 token
-                if self._login():
-                    return self.email
-                else:
-                    logger.error("登录临时邮箱失败")
-                    return None
-            else:
-                logger.error(f"创建邮箱失败: {response.status_code} - {response.text}")
-                return None
+                    if response.status_code == 201:
+                        data = response.json()
+                        self.account_id = data.get("id")
+                        logger.info(f"临时邮箱创建成功: {self.email}")
 
-        except Exception as e:
-            logger.error(f"创建临时邮箱异常: {e}")
-            return None
+                        # 登录获取 token（账号可能需要短暂生效时间）
+                        if self._login():
+                            return self.email
+                        logger.error("登录临时邮箱失败")
+                        break
+
+                    logger.error(f"创建邮箱失败: {response.status_code} - {response.text}")
+                    if response.status_code == 429:
+                        time.sleep(3)
+                except Exception as e:
+                    logger.error(f"创建临时邮箱异常: {e}")
+
+                time.sleep(attempt)
+
+        return None
 
     def _login(self) -> bool:
         """登录获取 token"""
-        try:
-            response = self.http_client.post(
-                f"{self.BASE_URL}/token",
-                json={
-                    "address": self.email,
-                    "password": self.password
-                }
-            )
+        time.sleep(2)
+        delay = 1
+        for attempt in range(1, 6):
+            try:
+                if not self.base_url:
+                    raise RuntimeError("base_url 未设置")
+                response = self.http_client.post(
+                    f"{self.base_url}/token",
+                    json={
+                        "address": self.email,
+                        "password": self.password
+                    }
+                )
 
-            if response.status_code == 200:
-                data = response.json()
-                self.token = data.get("token")
-                logger.info("临时邮箱登录成功")
-                return True
-            else:
-                logger.error(f"登录失败: {response.status_code}")
-                return False
+                if response.status_code == 200:
+                    data = response.json()
+                    self.token = data.get("token")
+                    logger.info("临时邮箱登录成功")
+                    return True
 
-        except Exception as e:
-            logger.error(f"登录异常: {e}")
-            return False
+                logger.error(f"登录失败: {response.status_code} - {response.text}")
+            except Exception as e:
+                logger.error(f"登录异常: {e}")
+
+            time.sleep(delay)
+            delay = min(delay * 2, 5)
+
+        return False
 
     def _get_auth_headers(self) -> Dict[str, str]:
         """获取认证头"""
@@ -138,10 +155,13 @@ class TempEmailService:
         if not self.token:
             logger.error("未登录，无法获取邮件")
             return []
+        if not self.base_url:
+            logger.error("未设置邮箱服务地址，无法获取邮件")
+            return []
 
         try:
             response = self.http_client.get(
-                f"{self.BASE_URL}/messages",
+                f"{self.base_url}/messages",
                 headers=self._get_auth_headers()
             )
 
@@ -160,10 +180,13 @@ class TempEmailService:
         """获取邮件详情"""
         if not self.token:
             return None
+        if not self.base_url:
+            logger.error("未设置邮箱服务地址，无法获取邮件详情")
+            return None
 
         try:
             response = self.http_client.get(
-                f"{self.BASE_URL}/messages/{message_id}",
+                f"{self.base_url}/messages/{message_id}",
                 headers=self._get_auth_headers()
             )
 

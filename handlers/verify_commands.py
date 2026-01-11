@@ -196,10 +196,18 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
     if not context.args:
         await update.message.reply_text(
             get_verify_usage_message("/verify3", "Spotify Student")
+            + "\n\n必填参数: /verify3 <链接> <真实邮箱>"
         )
         return
 
     url = context.args[0]
+    email = context.args[1] if len(context.args) > 1 else None
+    if not email:
+        await update.message.reply_text(
+            "临时邮箱服务当前不可用，请使用真实可接收邮件的邮箱：\n"
+            "/verify3 <链接> <真实邮箱>"
+        )
+        return
     user = db.get_user(user_id)
     if user["balance"] < VERIFY_COST:
         await update.message.reply_text(
@@ -233,7 +241,7 @@ async def verify3_command(update: Update, context: ContextTypes.DEFAULT_TYPE, db
     try:
         async with semaphore:
             verifier = SpotifyVerifier(verification_id)
-            result = await asyncio.to_thread(verifier.verify)
+            result = await asyncio.to_thread(verifier.verify, email=email)
 
         db.add_verification(
             user_id,

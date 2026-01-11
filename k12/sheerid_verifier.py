@@ -194,6 +194,33 @@ class SheerIDVerifier:
             logger.info(f"✓ 步骤 2 完成: {step2_data.get('currentStep')}")
             current_step = step2_data.get('currentStep', current_step)
 
+            # 步骤 2.5: 处理邮箱确认（部分项目要求）
+            if current_step == 'emailLoop':
+                logger.info("步骤 2.5/4: 提交邮箱确认...")
+                email_loop_body = {
+                    'email': email,
+                    'deviceFingerprintHash': self.device_fingerprint,
+                    'locale': 'en-US',
+                    'metadata': {
+                        'refererUrl': f"{SHEERID_BASE_URL}/verify/{PROGRAM_ID}/?verificationId={self.verification_id}",
+                        'verificationId': self.verification_id
+                    }
+                }
+                email_loop_data, email_loop_status = self._sheerid_request(
+                    'POST',
+                    f"{SHEERID_BASE_URL}/rest/v2/verification/{self.verification_id}/step/emailLoop",
+                    email_loop_body
+                )
+
+                if email_loop_status != 200:
+                    raise Exception(f"步骤 2.5 失败 (状态码 {email_loop_status}): {email_loop_data}")
+
+                current_step = email_loop_data.get('currentStep', current_step)
+                logger.info(f"✓ 步骤 2.5 完成: {current_step}")
+
+                if current_step == 'emailLoop':
+                    raise Exception("SheerID 要求邮箱验证，请使用真实可接收邮件的邮箱重新获取验证链接。")
+
             # 步骤 3: 跳过 SSO（如果需要）
             if current_step in ['sso', 'collectTeacherPersonalInfo']:
                 logger.info("步骤 3/4: 跳过 SSO 验证...")

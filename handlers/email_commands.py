@@ -3,6 +3,7 @@ import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
 from outlook.register import run_registration_flow
+from utils.email_generator import generate_accounts
 
 logger = logging.getLogger(__name__)
 
@@ -65,3 +66,21 @@ async def email_register_command(update: Update, context: ContextTypes.DEFAULT_T
 
     # Schedule the task on the current event loop
     asyncio.create_task(run_and_notify())
+
+
+async def gen_emails_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handler for /gen_emails command.
+    Generate N (default 10) short Outlook-style email/password pairs with lucky digits.
+    """
+    user = update.effective_user
+    logger.info(f"User {user.id} ({user.username}) requested bulk email generation.")
+
+    try:
+        count = int(context.args[0]) if context.args else 10
+    except ValueError:
+        count = 10
+    count = max(1, min(count, 30))
+
+    lines = [f"{idx}. {email} | {password}" for idx, email, password in generate_accounts(count)]
+    await update.message.reply_text("\n".join(lines))

@@ -35,7 +35,7 @@ from handlers.admin_commands import (
     listkeys_command,
     broadcast_command,
 )
-from handlers.email_commands import email_register_command
+from handlers.email_commands import email_register_command, gen_emails_command
 
 # 配置日志
 logging.basicConfig(
@@ -106,6 +106,7 @@ def main():
 
     # 注册邮箱注册命令
     application.add_handler(CommandHandler("email_register", email_register_command))
+    application.add_handler(CommandHandler("gen_emails", gen_emails_command))
 
     # 注册错误处理器
     application.add_error_handler(error_handler)

@@ -65,11 +65,12 @@ def get_help_message(is_admin: bool = False) -> str:
         "/use <卡密> - 使用卡密兑换积分\n"
         f"/verify <链接> - Gemini One Pro 认证（-{VERIFY_COST}积分）\n"
         f"/verify2 <链接> - ChatGPT Teacher K12 认证（-{VERIFY_COST}积分）\n"
-        f"/verify3 <链接> - Spotify Student 认证（-{VERIFY_COST}积分）\n"
+        f"/verify3 <链接> <邮箱> - Spotify Student 认证（-{VERIFY_COST}积分）\n"
         f"/verify4 <链接> - Bolt.new Teacher 认证（-{VERIFY_COST}积分）\n"
         f"/verify5 <链接> - YouTube Student Premium 认证（-{VERIFY_COST}积分）\n"
         f"/verify6 <链接> - ChatGPT Military 军人认证（-{VERIFY_COST}积分）\n"
         "/getV4Code <verification_id> - 获取 Bolt.new 认证码\n"
+        "/gen_emails [数量] - 生成短前缀 Outlook 邮箱+密码（默认10，最多30）\n"
         "/help - 查看此帮助信息\n"
         f"认证失败查看：{HELP_NOTION_URL}\n"
     )
